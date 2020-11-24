@@ -1,3 +1,6 @@
 <?php
 
-return [];
+return [
+    'gateway_id' => null,
+    'gateway_secret' => null
+];
