@@ -47,6 +47,13 @@ class Gearer
         return $this->makeRequest('POST',$url);
     }
 
+    public function checkOrderStatusManually($paymentId)
+    {
+        $url = $this->apiEndpoint("orders/{$paymentId}");
+
+        return $this->makeRequest('GET', $url);
+    }
+
 
     public function getLastKeychainId() : int
     {
@@ -84,25 +91,35 @@ class Gearer
 
     private function prepareHeadersHashes($method, $url, $params) : array
     {
+        $nonceHash = $this->generateNonceHash();
+
+        $queryParams = http_build_query($params);
+
+        $signatureHash = $this->generateSignatureHash($method . $url . $queryParams . $nonceHash);
+
+        return [
+            'nonce' => $nonceHash,
+            'signature' => $signatureHash
+        ];
+    }
+
+    private function generateNonceHash() : string
+    {
         $unique = round(time() * 1000);
-        $body = '';
 
-        $query = http_build_query($params);
+        return hash('sha512',$unique, true);
+    }
 
-        $bodyHash = hash('sha512',$unique.$body, true);
-
+    public function generateSignatureHash(string $signatureString) : string
+    {
         $signature = hash_hmac(
             'sha512',
-            $method . $url . $query .$bodyHash,
+            $signatureString,
             $this->gatewaySecret,
             true
         );
-        $encodedSignature = base64_encode($signature);
 
-        return [
-            'nonce' => $bodyHash,
-            'signature' => $encodedSignature
-        ];
+        return base64_encode($signature);
     }
 
 }
