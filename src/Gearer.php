@@ -3,18 +3,22 @@
 namespace Revlenuwe\Gearer;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
 
 class Gearer
 {
     const API_URL = 'https://gateway.gear.mycelium.com';
 
+
     public string $gatewayId;
     public string $gatewaySecret;
+    public Client $client;
 
     public function __construct()
     {
         $this->gatewayId = null;
         $this->gatewaySecret = null;
+        $this->client = new Client(['base_uri' => self::API_URL]);
     }
 
 
@@ -28,7 +32,7 @@ class Gearer
 
     public function createOrder($amount, $keychainId)
     {
-        $url = $this->endpoint('orders');
+        $url = $this->apiEndpoint('orders');
 
         return $this->makeRequest('POST', $url, [
             'amount' => $amount,
@@ -38,15 +42,15 @@ class Gearer
 
     public function cancelOrder($orderOrPaymentId)
     {
-        $url = $this->endpoint("orders/{$orderOrPaymentId}/cancel");
+        $url = $this->apiEndpoint("orders/{$orderOrPaymentId}/cancel");
 
         return $this->makeRequest('POST',$url);
     }
 
 
-    public function getLastKeychainId()
+    public function getLastKeychainId() : int
     {
-        $url = $this->endpoint('last_keychain_id');
+        $url = $this->apiEndpoint('last_keychain_id');
 
         $response = $this->makeRequest('GET',$url);
 
@@ -54,28 +58,31 @@ class Gearer
     }
 
 
-    private function endpoint($endpoint){
+    private function apiEndpoint($endpoint) : string
+    {
         return "/gateways/{$this->gatewayId}/".$endpoint;
     }
 
-    private function makeRequest($method, $uri, $params = [])
+    private function makeRequest($method, $url, $params = [])
     {
-        $client = new Client(['base_uri' => self::API_URL]);
+        $hashes = $this->prepareHeadersHashes($method, $url ,$params);
 
-        $hashes = $this->prepareHeadersHashes($method, $uri ,$params);
+        try {
+            $request = $this->client->request($method, $url,[
+                'form_params' => $params,
+                'headers' => [
+                    'X-Nonce' => $hashes['nonce'],
+                    'X-Signature' => $hashes['signature']
+                ]
+            ]);
+        }catch (ClientException $e) {
+            return json_decode($e->getResponse()->getBody());
+        }
 
-        $request = $client->request($method, $uri,[
-            'form_params' => $params,
-            'headers' => [
-                'X-Nonce' => $hashes['nonce'],
-                'X-Signature' => $hashes['signature']
-            ]
-        ]);
-
-        return json_decode($request->getBody()->getContents());
+        return json_decode($request->getBody());
     }
 
-    private function prepareHeadersHashes($method, $url, $params)
+    private function prepareHeadersHashes($method, $url, $params) : array
     {
         $unique = round(time() * 1000);
         $body = '';
