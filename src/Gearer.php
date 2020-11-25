@@ -8,8 +8,8 @@ class Gearer
 {
     const API_URL = 'https://gateway.gear.mycelium.com';
 
-    public  $gatewayId;
-    public  $gatewaySecret;
+    public string $gatewayId;
+    public string $gatewaySecret;
 
     public function __construct()
     {
@@ -24,6 +24,33 @@ class Gearer
         $this->gatewaySecret = $gatewaySecret;
 
         return $this;
+    }
+
+    public function createOrder($amount, $keychainId)
+    {
+        $url = $this->endpoint('orders');
+
+        return $this->makeRequest('POST', $url, [
+            'amount' => $amount,
+            'keychain_id' => $keychainId
+        ]);
+    }
+
+    public function cancelOrder($orderOrPaymentId)
+    {
+        $url = $this->endpoint("orders/{$orderOrPaymentId}/cancel");
+
+        return $this->makeRequest('POST',$url);
+    }
+
+
+    public function getLastKeychainId()
+    {
+        $url = $this->endpoint('last_keychain_id');
+
+        $response = $this->makeRequest('GET',$url);
+
+        return $response->last_keychain_id;
     }
 
 
