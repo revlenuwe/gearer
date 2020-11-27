@@ -41,7 +41,10 @@
         "laravel": {
             "providers": [
                 "Revlenuwe\\Gearer\\GearerServiceProvider"
-            ]
+            ],
+            "aliases": {
+                "Gearer": "Revlenuwe\\Gearer\\Facades\\Gearer"
+            }
         }
     }
 }
