@@ -17,8 +17,8 @@ class Gearer
 
     public function __construct()
     {
-        $this->gatewayId = null;
-        $this->gatewaySecret = null;
+        $this->gatewayId = config('gearer.gateway_id');
+        $this->gatewaySecret = config('gearer.gateway_secret');
         $this->client = new Client(['base_uri' => self::API_URL]);
     }
 
