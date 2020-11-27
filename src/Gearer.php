@@ -4,6 +4,7 @@ namespace Revlenuwe\Gearer;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
+use Illuminate\Http\Request;
 
 class Gearer
 {
@@ -52,6 +53,20 @@ class Gearer
         $url = $this->apiEndpoint("orders/{$paymentId}");
 
         return $this->makeRequest('GET', $url);
+    }
+
+    public function handleOrderStatusCallback(Request $request)
+    {
+        $requestSignature = $request->headers->get('X-Signature');
+
+        $nonceHash = $this->generateNonceHash(false);
+        $signatureHash = $this->generateSignatureHash($request->getMethod() . $request->getRequestUri() . $nonceHash);
+
+        if($requestSignature === $signatureHash){
+            return $request;
+        }
+
+        return false;
     }
 
 
@@ -103,20 +118,17 @@ class Gearer
         ];
     }
 
-    private function generateNonceHash() : string
+    private function generateNonceHash($withUnique = true) : string
     {
-        $unique = round(time() * 1000);
+        $uniqueValue = $withUnique ? round(time() * 1000) : null;
 
-        return hash('sha512',$unique, true);
+        return hash('sha512', $uniqueValue , true);
     }
 
     public function generateSignatureHash(string $signatureString) : string
     {
         $signature = hash_hmac(
-            'sha512',
-            $signatureString,
-            $this->gatewaySecret,
-            true
+            'sha512', $signatureString, $this->gatewaySecret, true
         );
 
         return base64_encode($signature);
