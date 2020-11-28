@@ -79,6 +79,11 @@ class Gearer
         return $response->last_keychain_id;
     }
 
+    public function getOrderWebsocketUrl(string $orderId) : string
+    {
+        return $this->apiEndpoint("orders/{$orderId}/websocket");
+    }
+
 
     private function apiEndpoint($endpoint) : string
     {
