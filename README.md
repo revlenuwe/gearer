@@ -1,5 +1,5 @@
 # MyceliumGear gateway Laravel
-![GEAR](https://image.prntscr.com/image/ezPxfvTySQeouZhfNz3rzw.png)
+![GEAR](https://image.prntscr.com/image/2VuH8BDBTBS3wCtCi7FIdg.png)
 
 Implementation MyceliumGear gateway payment processing support for Laravel
 
