@@ -11,9 +11,9 @@ class Gearer
     const API_URL = 'https://gateway.gear.mycelium.com';
 
 
-    public string $gatewayId;
-    public string $gatewaySecret;
-    public Client $client;
+    public  $gatewayId;
+    public  $gatewaySecret;
+    public  $client;
 
     public function __construct()
     {
@@ -83,7 +83,7 @@ class Gearer
 
     public function getOrderWebsocketUrl(string $orderId) : string
     {
-        return $this->apiEndpoint("orders/{$orderId}/websocket");
+        return self::API_URL.$this->apiEndpoint("orders/{$orderId}/websocket");
     }
 
 
