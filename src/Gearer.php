@@ -31,13 +31,14 @@ class Gearer
         return $this;
     }
 
-    public function createOrder($amount, $keychainId)
+    public function createOrder($amount, $keychainId, $callbackData = null)
     {
         $url = $this->apiEndpoint('orders');
 
         return $this->makeRequest('POST', $url, [
             'amount' => $amount,
-            'keychain_id' => $keychainId
+            'keychain_id' => $keychainId,
+            'callback_data' => $callbackData
         ]);
     }
 
@@ -45,7 +46,9 @@ class Gearer
     {
         $url = $this->apiEndpoint("orders/{$orderOrPaymentId}/cancel");
 
-        return $this->makeRequest('POST',$url);
+        $response = $this->makeRequest('POST',$url);
+
+        return $response == null;
     }
 
     public function checkOrderStatusManually($paymentId)
@@ -68,7 +71,6 @@ class Gearer
 
         return false;
     }
-
 
     public function getLastKeychainId() : int
     {
