@@ -5,12 +5,16 @@
         "revlenuwe",
         "gearer",
         "mycelium",
-        "gear"
+        "gear",
+        "laravel",
+        "laravel gateway",
+        "laravel payment",
+        "bitcoin"
     ],
     "type": "library",
     "license": "MIT",
     "require": {
-        "php": "^7.4|^8.0",
+        "php": "^7.3|^8.0",
         "guzzlehttp/guzzle": "^7.2",
         "illuminate/support": "^6.0|^7.0|^8.0"
     },
