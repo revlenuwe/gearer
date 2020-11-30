@@ -11,9 +11,9 @@ class Gearer
     const API_URL = 'https://gateway.gear.mycelium.com';
 
 
-    public  $gatewayId;
-    public  $gatewaySecret;
-    public  $client;
+    public $gatewayId;
+    public $gatewaySecret;
+    public $client;
 
     public function __construct()
     {
@@ -31,18 +31,20 @@ class Gearer
         return $this;
     }
 
-    public function createOrder($amount, $keychainId, $callbackData = null)
+    public function createOrder(float $amount, int $keychainId, array $callbackData = [])
     {
         $url = $this->apiEndpoint('orders');
 
+        $callbackData = array_merge(config('gearer.defaults.callback_data'), $callbackData);
+
         return $this->makeRequest('POST', $url, [
-            'amount' => $amount,
+            'amount' => $this->formatAmount($amount),
             'keychain_id' => $keychainId,
-            'callback_data' => $callbackData
+            'callback_data' => json_encode($callbackData)
         ]);
     }
 
-    public function cancelOrder($orderOrPaymentId)
+    public function cancelOrder($orderOrPaymentId) : bool
     {
         $url = $this->apiEndpoint("orders/{$orderOrPaymentId}/cancel");
 
@@ -85,7 +87,6 @@ class Gearer
     {
         return self::API_URL.$this->apiEndpoint("orders/{$orderId}/websocket");
     }
-
 
     private function apiEndpoint($endpoint) : string
     {
@@ -139,6 +140,11 @@ class Gearer
         );
 
         return base64_encode($signature);
+    }
+
+    private function formatAmount(float $amount) : float
+    {
+        return number_format($amount, 2 ,'.', '');
     }
 
 }
