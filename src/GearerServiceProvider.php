@@ -24,7 +24,7 @@ class GearerServiceProvider extends ServiceProvider
 
             $this->publishes([
                 __DIR__ . '/../config/config.php' => config_path('gearer.php'),
-            ], 'gearer');
+            ], 'config');
 
         }
     }

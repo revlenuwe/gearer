@@ -35,7 +35,7 @@ For Laravel 5.5+ they will be registered automatically
 You can publish the `gearer.php` config with:
 
 ``` bash
-$ php artisan vendor:publish --provider="Revlenuwe\Gearer\GearerServiceProvider" --tag=config
+$ php artisan vendor:publish --provider="Revlenuwe\Gearer\GearerServiceProvider"
 ```
 
 ## Usage
