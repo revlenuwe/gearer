@@ -60,15 +60,17 @@ class Gearer
         return $this->makeRequest('GET', $url);
     }
 
-    public function handleOrderStatusCallback(Request $request)
+    public function handleOrderStatusCallback(?Request $request = null)
     {
+        $request = $request ?: request();
+
         $requestSignature = $request->headers->get('X-Signature');
 
         $nonceHash = $this->generateNonceHash(false);
         $signatureHash = $this->generateSignatureHash($request->getMethod() . $request->getRequestUri() . $nonceHash);
 
         if($requestSignature === $signatureHash){
-            return $request;
+            return $request->toArray();
         }
 
         return false;

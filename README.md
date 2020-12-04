@@ -97,11 +97,12 @@ $websocketUrl = Gearer::getOrderWebsocketUrl($orderId);
 ``` php
 public function handleCallback(Request $request)
 {
+    //Passing $request is optional
     $order = Gearer::handleOrderStatusCallback($request);
 
     if($order !== false){
         /*
-        {
+        [
           "status": 2,
           "amount": 7894000,
           "address": "1NZov2nm6gRCGW6r4q1qHtxXurrWNpPr1q",
@@ -112,7 +113,7 @@ public function handleCallback(Request $request)
           "amount_paid_in_btc": "0.07894",
           "keychain_id": 3,
           "last_keychain_id": 3
-        }
+        ]
         */
     }
 }
