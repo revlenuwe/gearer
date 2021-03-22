@@ -8,22 +8,21 @@ use Illuminate\Http\Request;
 
 class Gearer
 {
-    const API_URL = 'https://gateway.gear.mycelium.com';
-
-
-    public $gatewayId;
-    public $gatewaySecret;
-    public $client;
+    private $baseUrl;
+    private $gatewayId;
+    private $gatewaySecret;
+    private $client;
+    private $endpoint;
 
     public function __construct()
     {
+        $this->baseUrl = config('gearer.gateway_url');
         $this->gatewayId = config('gearer.gateway_id');
         $this->gatewaySecret = config('gearer.gateway_secret');
-        $this->client = new Client(['base_uri' => self::API_URL]);
+        $this->client = new Client(['base_uri' => $this->baseUrl]);
     }
 
-
-    public function setConfig($gatewayId, $gatewaySecret): self
+    public function setConfig(string $gatewayId, string $gatewaySecret): Gearer
     {
         $this->gatewayId = $gatewayId;
         $this->gatewaySecret = $gatewaySecret;
@@ -33,34 +32,34 @@ class Gearer
 
     public function createOrder(float $amount, int $keychainId, array $callbackData = [])
     {
-        $url = $this->apiEndpoint('orders');
-
         $callbackData = array_merge(config('gearer.defaults.callback_data'), $callbackData);
 
-        return $this->makeRequest('POST', $url, [
-            'amount' => $this->formatAmount($amount),
-            'keychain_id' => $keychainId,
-            'callback_data' => json_encode($callbackData)
-        ]);
+        return $this
+            ->apiEndpoint('orders')
+            ->makeRequest('POST', [
+                'amount' => $this->formatAmount($amount),
+                'keychain_id' => $keychainId,
+                'callback_data' => json_encode($callbackData)
+            ]);
     }
 
-    public function cancelOrder($orderOrPaymentId) : bool
+    public function cancelOrder($orderOrPaymentId): bool
     {
-        $url = $this->apiEndpoint("orders/{$orderOrPaymentId}/cancel");
+        $response = $this
+            ->apiEndpoint("orders/$orderOrPaymentId/cancel")
+            ->makeRequest('POST');
 
-        $response = $this->makeRequest('POST',$url);
-
-        return $response == null;
+        return is_null($response);
     }
 
     public function checkOrderStatusManually($paymentId)
     {
-        $url = $this->apiEndpoint("orders/{$paymentId}");
-
-        return $this->makeRequest('GET', $url);
+        return $this
+            ->apiEndpoint("orders/$paymentId")
+            ->makeRequest('GET');
     }
 
-    public function handleOrderStatusCallback(?Request $request = null)
+    public function handleOrderStatusCallback(?Request $request = null): array
     {
         $request = $request ?: request();
 
@@ -69,58 +68,75 @@ class Gearer
         $nonceHash = $this->generateNonceHash(false);
         $signatureHash = $this->generateSignatureHash($request->getMethod() . $request->getRequestUri() . $nonceHash);
 
-        if($requestSignature === $signatureHash){
+        if ($requestSignature === $signatureHash) {
             return $request->toArray();
         }
 
-        return false;
+        return [];
     }
 
-    public function getLastKeychainId() : int
+    public function getLastKeychainId(): int
     {
-        $url = $this->apiEndpoint('last_keychain_id');
-
-        $response = $this->makeRequest('GET',$url);
+        $response = $this
+            ->apiEndpoint('last_keychain_id')
+            ->makeRequest('GET');
 
         return $response->last_keychain_id;
     }
 
-    public function getOrderWebsocketUrl(string $orderId) : string
+    public function getOrderWebsocketUrl(string $orderId): string
     {
-        return self::API_URL.$this->apiEndpoint("orders/{$orderId}/websocket");
+        return $this
+            ->apiEndpoint("orders/{$orderId}/websocket")
+            ->fullUrl();
     }
 
-    private function apiEndpoint($endpoint) : string
+    private function apiEndpoint($endpoint): Gearer
     {
-        return "/gateways/{$this->gatewayId}/".$endpoint;
+        $this->endpoint = "/gateways/{$this->gatewayId}/$endpoint";
+        return $this;
     }
 
-    private function makeRequest($method, $url, $params = [])
+    private function fullUrl(): string
     {
-        $hashes = $this->prepareHeadersHashes($method, $url ,$params);
+        return $this->baseUrl . $this->endpoint;
+    }
+
+    /**
+     * @param string $method
+     * @param array $params
+     * @return mixed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    private function makeRequest(string $method, array $params = [])
+    {
+        $hashes = $this->prepareHeadersHashes($method, $params);
 
         try {
-            $request = $this->client->request($method, $url,[
+            $request = $this->client->request($method, $this->endpoint, [
                 'form_params' => $params,
                 'headers' => [
                     'X-Nonce' => $hashes['nonce'],
                     'X-Signature' => $hashes['signature']
                 ]
             ]);
-        }catch (ClientException $e) {
+        } catch (ClientException $e) {
             return json_decode($e->getResponse()->getBody());
         }
 
         return json_decode($request->getBody());
     }
 
-    private function prepareHeadersHashes($method, $url, $params) : array
+    /**
+     * @param string $method
+     * @param mixed $params May be an array or object containing properties.
+     * @return array
+     */
+    private function prepareHeadersHashes(string $method, $params): array
     {
         $nonceHash = $this->generateNonceHash();
-
         $queryParams = http_build_query($params);
-
-        $signatureHash = $this->generateSignatureHash($method . $url . $queryParams . $nonceHash);
+        $signatureHash = $this->generateSignatureHash($method . $this->endpoint . $queryParams . $nonceHash);
 
         return [
             'nonce' => $nonceHash,
@@ -128,14 +144,14 @@ class Gearer
         ];
     }
 
-    private function generateNonceHash($withUnique = true) : string
+    private function generateNonceHash($withUnique = true): string
     {
         $uniqueValue = $withUnique ? round(time() * 1000) : null;
 
-        return hash('sha512', $uniqueValue , true);
+        return hash('sha512', $uniqueValue, true);
     }
 
-    public function generateSignatureHash(string $signatureString) : string
+    public function generateSignatureHash(string $signatureString): string
     {
         $signature = hash_hmac(
             'sha512', $signatureString, $this->gatewaySecret, true
@@ -144,9 +160,9 @@ class Gearer
         return base64_encode($signature);
     }
 
-    private function formatAmount(float $amount) : float
+    private function formatAmount(float $amount): float
     {
-        return number_format($amount, 2 ,'.', '');
+        return number_format($amount, 2, '.', '');
     }
 
 }
